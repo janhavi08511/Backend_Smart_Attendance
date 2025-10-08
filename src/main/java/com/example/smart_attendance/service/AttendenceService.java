@@ -30,9 +30,6 @@ public class AttendenceService {
         this.studentService = studentService;
     }
 
-    /**
-     * Step 1: Creates the initial attendance record without activating a beacon.
-     */
     public AttendenceRecord createAttendance(String teacherId, CreateAttendenceRequest req) {
         AttendenceRecord record = new AttendenceRecord();
         record.setTeacherId(teacherId);
@@ -42,19 +39,15 @@ public class AttendenceService {
         record.setDepartment(req.department());
         record.setCreatedAt(Instant.now());
         record.setPresentStudents(new ArrayList<>());
-        record.setCwStudents(new ArrayList<>());
-
         return attendenceRepository.save(record);
     }
 
-    /**
-     * Step 2: Finds an existing record and activates its beacon session.
-     */
     public AttendenceRecord finalizeWithBeacon(FinalizeAttendenceRequest req) {
         AttendenceRecord record = attendenceRepository.findById(req.attendanceId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid attendanceId: " + req.attendanceId()));
 
-        record.setBeaconUuid("FDA50693-A4E2-4FB1-AFCF-C6EB07647825");
+        // ✅ Use the beacon UUID from the request
+        record.setBeaconUuid(req.beaconUuid());
         Instant now = Instant.now();
         record.setBeaconActivatedAt(now);
         record.setBeaconDeactivatedAt(now.plus(3, ChronoUnit.MINUTES));
@@ -66,18 +59,25 @@ public class AttendenceService {
         AttendenceRecord record = attendenceRepository.findById(req.attendanceId())
                 .orElseThrow(() -> new IllegalArgumentException("Attendance session not found."));
 
+        // ✅ Add validation
+        if (record.getBeaconDeactivatedAt() == null || Instant.now().isAfter(record.getBeaconDeactivatedAt())) {
+            throw new IllegalArgumentException("Attendance session is not active.");
+        }
+        if (!record.getBeaconUuid().equalsIgnoreCase(req.beaconUuid())) {
+            throw new IllegalArgumentException("Beacon UUID does not match.");
+        }
+
         Student student = studentService.ensureStudentExists(req.crn(), req.name(), req.rollNo());
 
-        if (record.getPresentStudents() != null && record.getPresentStudents().stream().anyMatch(p -> p.getRollNo().equals(student.getRollNo()))) {
-            System.out.println("Student " + student.getName() + " already marked present.");
-            return;
+        boolean isAlreadyMarked = record.getPresentStudents().stream()
+                .anyMatch(p -> p.getRollNo().equals(student.getRollNo()) || p.getDeviceId().equals(req.deviceId()));
+
+        if (isAlreadyMarked) {
+            throw new IllegalArgumentException("Attendance already marked for this student or device.");
         }
 
-        PresentStudent presentStudent = new PresentStudent(student.getName(), student.getRollNo(), Instant.now());
-
-        if (record.getPresentStudents() == null) {
-            record.setPresentStudents(new ArrayList<>());
-        }
+        PresentStudent presentStudent = new PresentStudent(student.getId(), student.getName(), student.getRollNo(), Instant.now());
+        presentStudent.setDeviceId(req.deviceId());
         record.getPresentStudents().add(presentStudent);
         attendenceRepository.save(record);
     }
@@ -124,4 +124,3 @@ public class AttendenceService {
                 .orElse(false);
     }
 }
-
