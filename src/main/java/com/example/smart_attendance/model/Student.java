@@ -11,7 +11,6 @@ public class Student {
 
     @Id
     private String id;
-
     private String crn;          // College Registration Number
     private String name;         // Full name
     private String rollNo;       // Roll number

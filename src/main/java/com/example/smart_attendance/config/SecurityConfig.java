@@ -22,8 +22,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/teacher/login",
                                 "/api/teacher/signup",
-                                "/api/attendence/active-by-beacon",
-                                "/api/attendence/mark"
+                                "/api/attendence/{attendanceId}/active",
+                                "/api/attendence/mark",
+                                "/api/student/mark"
+
                         ).permitAll()
                         // ✅ All other endpoints require authentication
                         .anyRequest().authenticated()
