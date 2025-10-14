@@ -17,7 +17,7 @@ public class Teacher {
     @Indexed(unique = true)
     private String email;
 
-    private String passwordHash; // store BCrypt hash
+    private String password; // store BCrypt hash
 
     @Indexed(unique = true)
     private String teacherId;
@@ -27,11 +27,11 @@ public class Teacher {
 
     public Teacher() {}
 
-    public Teacher(String name, String department, String email, String passwordHash, String teacherId, String profilePicUrl) {
+    public Teacher(String name, String department, String email, String password, String teacherId, String profilePicUrl) {
         this.name = name;
         this.department = department;
         this.email = email;
-        this.passwordHash = passwordHash;
+        this.password = password;
         this.teacherId = teacherId;
         this.profilePicUrl = profilePicUrl;
     }
@@ -52,9 +52,9 @@ public class Teacher {
 
     public void setEmail(String email) { this.email = email; }
 
-    public String getPasswordHash() { return passwordHash; }
+    public String getPassword() { return password; }
 
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public void setPassword(String passwordHash) { this.password = password; }
 
     public String getTeacherId() { return teacherId; }
 
