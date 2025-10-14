@@ -20,7 +20,7 @@ public class TeacherService {
     }
 
     public Teacher register(RegisterTeacherRequest req) {
-        if (!req.passwordHash.equals(req.confirmPassword)) {
+        if (!req.password.equals(req.confirmPassword)) {
             throw new IllegalArgumentException("Passwords do not match");
         }
         if (teacherRepository.existsByEmail(req.email)) throw new IllegalArgumentException("Email already used");
@@ -30,7 +30,7 @@ public class TeacherService {
                 req.name,
                 req.department,
                 req.email,
-                encoder.encode(req.passwordHash),
+                encoder.encode(req.password),
                 req.teacherId,
                 req.profilePicUrl
         );
@@ -42,7 +42,7 @@ public class TeacherService {
                 ? teacherRepository.findByEmail(req.emailOrTeacherId)
                 : teacherRepository.findByTeacherId(req.emailOrTeacherId);
 
-        if (teacher.isPresent() && encoder.matches(req.passwordHash, teacher.get().getPasswordHash())) {
+        if (teacher.isPresent() && encoder.matches(req.password, teacher.get().getPassword())) {
             return teacher;
         }
         return Optional.empty();
