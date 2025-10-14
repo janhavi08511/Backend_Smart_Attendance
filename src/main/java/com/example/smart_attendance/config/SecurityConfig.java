@@ -24,7 +24,11 @@ public class SecurityConfig {
                                 "/api/teacher/signup",
                                 "/api/attendence/{attendanceId}/active",
                                 "/api/attendence/mark",
+<<<<<<< HEAD
                                 "api/student/mark"
+=======
+                                "/api/student/mark"
+>>>>>>> 8e9bef8d6ac2081e7f9c038a5fed51536e17582d
 
                         ).permitAll()
                         // ✅ All other endpoints require authentication
