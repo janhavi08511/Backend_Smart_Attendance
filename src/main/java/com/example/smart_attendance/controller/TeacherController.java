@@ -1,15 +1,25 @@
 package com.example.smart_attendance.controller;
 
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.smart_attendance.dto.MessageResponse;
 import com.example.smart_attendance.dto.requests.RegisterTeacherRequest;
 import com.example.smart_attendance.dto.requests.TeacherLoginRequest;
 import com.example.smart_attendance.model.Teacher;
+import com.example.smart_attendance.service.JwtService;
 import com.example.smart_attendance.service.TeacherService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
-import java.util.Optional; // 🔹 Import Optional
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -17,9 +27,12 @@ import java.util.Optional; // 🔹 Import Optional
 public class TeacherController {
 
     private final TeacherService teacherService;
+    private final JwtService jwtService;
 
-    public TeacherController(TeacherService teacherService) {
+    // ✅ FIXED: Correctly inject both services
+    public TeacherController(TeacherService teacherService, JwtService jwtService) {
         this.teacherService = teacherService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/signup")
@@ -36,19 +49,25 @@ public class TeacherController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody TeacherLoginRequest req) {
         return teacherService.login(req)
-                .<ResponseEntity<?>>map(t -> ResponseEntity.ok(Map.of(
-                        "message", "Login successful",
-                        "teacherId", t.getTeacherId(),
-                        // TODO: return JWT token if using JWT; for now we return teacherId
-                        "token", "dummy-token"
-                )))
-                .orElse(ResponseEntity.status(401).body(new MessageResponse("Invalid credentials")));
+                .map(teacher -> {
+                    UserDetails userDetails = User.builder()
+                            .username(teacher.getTeacherId())
+                            .password(teacher.getPasswordHash())
+                            .roles("TEACHER")
+                            .build();
+                    
+                    String jwtToken = jwtService.generateToken(userDetails);
+
+                    return ResponseEntity.ok(Map.of(
+                            "message", "Login successful",
+                            "teacherId", teacher.getTeacherId(),
+                            "token", jwtToken
+                    ));
+                })
+                // ✅ FIXED: Return a Map in the error case to match the success case
+                .orElse(ResponseEntity.status(401).body(Map.of("error", "Invalid credentials")));
     }
 
-    /**
-     * 🔹 New endpoint to fetch teacher profile details.
-     * This is called by the dashboard after a successful login.
-     */
     @GetMapping("/profile/{teacherId}")
     public ResponseEntity<?> getProfile(@PathVariable String teacherId) {
         Optional<Teacher> teacherOpt = teacherService.findByTeacherId(teacherId);

@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class ApiConfig {
     private String baseUrl = "http://localhost:8081";
-    private String teachersEndpoint = "/teachers";
+    private String teachersEndpoint = "/teacher";
 
     public String getTeachersUrl() {
         return baseUrl + teachersEndpoint;

@@ -46,7 +46,6 @@ public class AttendenceService {
         AttendenceRecord record = attendenceRepository.findById(req.attendanceId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid attendanceId: " + req.attendanceId()));
 
-        // ✅ Use the beacon UUID from the request
         record.setBeaconUuid(req.beaconUuid());
         Instant now = Instant.now();
         record.setBeaconActivatedAt(now);
@@ -59,7 +58,6 @@ public class AttendenceService {
         AttendenceRecord record = attendenceRepository.findById(req.attendanceId())
                 .orElseThrow(() -> new IllegalArgumentException("Attendance session not found."));
 
-        // ✅ Add validation
         if (record.getBeaconDeactivatedAt() == null || Instant.now().isAfter(record.getBeaconDeactivatedAt())) {
             throw new IllegalArgumentException("Attendance session is not active.");
         }
@@ -89,6 +87,13 @@ public class AttendenceService {
         return attendenceRepository.save(record);
     }
 
+    // ✅ ADD THIS METHOD to fetch the record for exporting
+    public AttendenceRecord getAttendenceRecordById(String attendanceId) {
+        return attendenceRepository.findById(attendanceId)
+                .orElseThrow(() -> new RuntimeException("Attendence record not found for ID: " + attendanceId));
+    }
+
+
     public Optional<AttendenceRecord> findActiveByBeacon(String beaconUuid) {
         return attendenceRepository.findByBeaconUuidAndBeaconDeactivatedAtAfter(beaconUuid, Instant.now())
                 .stream()
@@ -96,8 +101,7 @@ public class AttendenceService {
     }
 
     public Map<String, Object> getAttendanceSummary(String attendanceId) {
-        AttendenceRecord record = attendenceRepository.findById(attendanceId)
-                .orElseThrow(() -> new RuntimeException("Attendance record not found for ID: " + attendanceId));
+        AttendenceRecord record = getAttendenceRecordById(attendanceId);
 
         List<String> presentRollNos = record.getPresentStudents().stream()
                 .map(PresentStudent::getRollNo)

@@ -1,27 +1,34 @@
 package com.example.smart_attendance.controller;
 
-import jakarta.validation.Valid;
 import com.example.smart_attendance.dto.ActiveByBeaconResponse;
 import com.example.smart_attendance.dto.requests.CreateAttendenceRequest;
 import com.example.smart_attendance.dto.requests.FinalizeAttendenceRequest;
 import com.example.smart_attendance.dto.requests.MarkattendenceRequest;
 import com.example.smart_attendance.model.AttendenceRecord;
 import com.example.smart_attendance.service.AttendenceService;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
+import com.example.smart_attendance.service.BeaconService;
+import com.example.smart_attendance.service.ExcelExportService;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
+@Slf4j // ✅ Use Lombok for logging, which is cleaner
 @RestController
 @RequestMapping("/api/attendence")
 public class AttendenceController {
 
-    private static final Logger logger = LoggerFactory.getLogger(AttendenceController.class);
     private final AttendenceService attendenceService;
+    private final BeaconService beaconService;
+    private final ExcelExportService excelExportService;
 
-    public AttendenceController(AttendenceService attendenceService) {
+    // ✅ CORRECTED CONSTRUCTOR: It was missing parameters
+    public AttendenceController(AttendenceService attendenceService, BeaconService beaconService, ExcelExportService excelExportService) {
         this.attendenceService = attendenceService;
+        this.beaconService = beaconService;
+        this.excelExportService = excelExportService;
     }
 
     @PostMapping("/create")
@@ -32,7 +39,7 @@ public class AttendenceController {
                     "attendanceId", r.getId(),
                     "message", "Attendance record created. Please finalize to start the beacon."));
         } catch (Exception ex) {
-            logger.error("Error creating attendance", ex);
+            log.error("Error creating attendance", ex);
             return ResponseEntity.internalServerError().body(Map.of("error", ex.getMessage()));
         }
     }
@@ -41,13 +48,15 @@ public class AttendenceController {
     public ResponseEntity<?> finalizeWithBeacon(@Valid @RequestBody FinalizeAttendenceRequest req) {
         try {
             AttendenceRecord r = attendenceService.finalizeWithBeacon(req);
+            // ❗ IMPORTANT: Replace with your actual port description from your PC's Device Manager
+            beaconService.startBeacon("Your_ESP32_Port_Description_Here");
             return ResponseEntity.ok(Map.of(
                     "attendanceId", r.getId(),
                     "beaconUuid", r.getBeaconUuid(),
                     "activeUntil", r.getBeaconDeactivatedAt(),
                     "message", "Beacon activated for 3 minutes."));
         } catch (Exception ex) {
-            logger.error("Error finalizing attendance", ex);
+            log.error("Error finalizing attendance", ex);
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }
     }
@@ -59,8 +68,25 @@ public class AttendenceController {
             return ResponseEntity.ok(Map.of(
                     "message", "Attendance marked successfully for roll number: " + req.rollNo()));
         } catch (Exception ex) {
-            logger.error("Error marking attendance", ex);
+            log.error("Error marking attendance", ex);
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    // ✅ NEW ENDPOINT FOR EXCEL EXPORT
+    @GetMapping("/report/{attendanceId}/export")
+    public ResponseEntity<byte[]> exportReport(@PathVariable String attendanceId) {
+        try {
+            // This logic now correctly fetches the record before exporting
+            AttendenceRecord record = attendenceService.getAttendenceRecordById(attendanceId);
+            byte[] excelFile = excelExportService.exportToExcel(record);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=attendence_report.xlsx")
+                    .body(excelFile);
+        } catch (Exception ex) {
+            log.error("Error exporting report", ex);
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -87,7 +113,7 @@ public class AttendenceController {
         try {
             return ResponseEntity.ok(attendenceService.getAttendanceSummary(attendanceId));
         } catch (Exception ex) {
-            logger.error("Error generating report", ex);
+            log.error("Error generating report", ex);
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }
     }
@@ -97,4 +123,3 @@ public class AttendenceController {
         return ResponseEntity.ok(Map.of("active", attendenceService.isBeaconActive(attendanceId)));
     }
 }
-
