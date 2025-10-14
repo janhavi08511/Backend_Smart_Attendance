@@ -4,12 +4,16 @@ import com.example.smart_attendance.dto.MessageResponse;
 import com.example.smart_attendance.dto.requests.RegisterTeacherRequest;
 import com.example.smart_attendance.dto.requests.TeacherLoginRequest;
 import com.example.smart_attendance.model.Teacher;
+import com.example.smart_attendance.service.JwtService;
 import com.example.smart_attendance.service.TeacherService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.Optional; // 🔹 Import Optional
+import java.util.Optional;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -17,44 +21,65 @@ import java.util.Optional; // 🔹 Import Optional
 public class TeacherController {
 
     private final TeacherService teacherService;
+    private final JwtService jwtService;
 
-    public TeacherController(TeacherService teacherService) {
+    public TeacherController(TeacherService teacherService, JwtService jwtService) {
         this.teacherService = teacherService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody RegisterTeacherRequest req) {
-        Teacher t = teacherService.register(req);
-        return ResponseEntity.ok(Map.of(
-                "id", t.getId(),
-                "email", t.getEmail(),
-                "teacherId", t.getTeacherId(),
-                "message", "Profile created. Please login."
-        ));
+        try {
+            Teacher t = teacherService.register(req);
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Profile created successfully. Please login.",
+                    "teacherId", t.getTeacherId()
+            );
+            return new ResponseEntity<>(responseBody, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new MessageResponse("Error: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody TeacherLoginRequest req) {
-        return teacherService.login(req)
-                .<ResponseEntity<?>>map(t -> ResponseEntity.ok(Map.of(
-                        "message", "Login successful",
-                        "teacherId", t.getTeacherId(),
-                        // TODO: return JWT token if using JWT; for now we return teacherId
-                        "token", "dummy-token"
-                )))
-                .orElse(ResponseEntity.status(401).body(new MessageResponse("Invalid credentials")));
+        // ✅ FIXED: Refactored to use an if-else block to resolve the type inference error.
+        Optional<Teacher> teacherOpt = teacherService.login(req);
+
+        if (teacherOpt.isPresent()) {
+            Teacher teacher = teacherOpt.get();
+            // Create UserDetails for JWT generation
+            UserDetails userDetails = User.builder()
+                    .username(teacher.getTeacherId())
+                    .password(teacher.getPassword()) // The password here is the stored hash
+                    .roles("TEACHER")
+                    .build();
+
+            String jwtToken = jwtService.generateToken(userDetails);
+
+            // More structured success response
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Login successful",
+                    "teacherId", teacher.getTeacherId(),
+                    "token", jwtToken
+            );
+            return ResponseEntity.ok(responseBody);
+        } else {
+            // Standardized error response for consistency
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new MessageResponse("Error: Invalid credentials"));
+        }
     }
 
-    /**
-     * 🔹 New endpoint to fetch teacher profile details.
-     * This is called by the dashboard after a successful login.
-     */
     @GetMapping("/profile/{teacherId}")
     public ResponseEntity<?> getProfile(@PathVariable String teacherId) {
+        // ✅ FIXED: Refactored to use an if-else block to resolve the type inference error.
         Optional<Teacher> teacherOpt = teacherService.findByTeacherId(teacherId);
-        return teacherOpt
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(404).body(new MessageResponse("Teacher not found")));
+        if (teacherOpt.isPresent()) {
+            return ResponseEntity.ok(teacherOpt.get());
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("Error: Teacher not found"));
+        }
     }
 
     @GetMapping("/count")
@@ -62,3 +87,4 @@ public class TeacherController {
         return ResponseEntity.ok(Map.of("total", teacherService.countTeachers()));
     }
 }
+
