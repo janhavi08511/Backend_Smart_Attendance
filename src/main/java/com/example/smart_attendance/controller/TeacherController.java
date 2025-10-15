@@ -52,7 +52,7 @@ public class TeacherController {
             // Create UserDetails for JWT generation
             UserDetails userDetails = User.builder()
                     .username(teacher.getTeacherId())
-                    .password(teacher.getPassword()) // The password here is the stored hash
+                    .password(teacher.getPasswordHash()) // The password here is the stored hash
                     .roles("TEACHER")
                     .build();
 

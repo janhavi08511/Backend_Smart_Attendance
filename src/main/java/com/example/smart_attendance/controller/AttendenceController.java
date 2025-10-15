@@ -49,7 +49,8 @@ public class AttendenceController {
         try {
             AttendenceRecord r = attendenceService.finalizeWithBeacon(req);
             // ❗ IMPORTANT: Replace with your actual port description from your PC's Device Manager
-            beaconService.startBeacon("Your_ESP32_Port_Description_Here");
+            // Use a unique part of the actual name from the log
+            beaconService.startBeacon("CP2102");
             return ResponseEntity.ok(Map.of(
                     "attendanceId", r.getId(),
                     "beaconUuid", r.getBeaconUuid(),
@@ -122,8 +123,4 @@ public class AttendenceController {
     public ResponseEntity<?> isActive(@PathVariable String attendanceId) {
         return ResponseEntity.ok(Map.of("active", attendenceService.isBeaconActive(attendanceId)));
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 3373ec0d1e8d9aadfaab4b21072be139b3ff6bd5
