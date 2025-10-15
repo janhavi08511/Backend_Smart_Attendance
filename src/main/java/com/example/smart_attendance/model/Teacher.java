@@ -10,61 +10,41 @@ import java.time.Instant;
 public class Teacher {
     @Id
     private String id;
-
     private String name;
     private String department;
-
     @Indexed(unique = true)
     private String email;
-
-    private String password; // store BCrypt hash
-
+    private String passwordHash; // Changed from 'password' for clarity
     @Indexed(unique = true)
     private String teacherId;
-
-    private String profilePicUrl; // or store a file key
+    private String profilePicUrl;
     private Instant createdAt = Instant.now();
 
     public Teacher() {}
 
-    public Teacher(String name, String department, String email, String password, String teacherId, String profilePicUrl) {
+    public Teacher(String name, String department, String email, String passwordHash, String teacherId, String profilePicUrl) {
         this.name = name;
         this.department = department;
         this.email = email;
-        this.password = password;
+        this.passwordHash = passwordHash;
         this.teacherId = teacherId;
         this.profilePicUrl = profilePicUrl;
     }
 
-    // getters & setters
-
+    // Getters and Setters
     public String getId() { return id; }
-
     public String getName() { return name; }
-
     public void setName(String name) { this.name = name; }
-
     public String getDepartment() { return department; }
-
     public void setDepartment(String department) { this.department = department; }
-
     public String getEmail() { return email; }
-
     public void setEmail(String email) { this.email = email; }
-
-    public String getPassword() { return password; }
-
-    public void setPassword(String passwordHash) { this.password = password; }
-
+    public String getPasswordHash() { return passwordHash; } // Renamed getter
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; } // Renamed setter
     public String getTeacherId() { return teacherId; }
-
     public void setTeacherId(String teacherId) { this.teacherId = teacherId; }
-
     public String getProfilePicUrl() { return profilePicUrl; }
-
     public void setProfilePicUrl(String profilePicUrl) { this.profilePicUrl = profilePicUrl; }
-
     public Instant getCreatedAt() { return createdAt; }
-
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

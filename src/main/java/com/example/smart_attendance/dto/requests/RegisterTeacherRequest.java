@@ -4,8 +4,8 @@ public class RegisterTeacherRequest {
     public String name;
     public String department;
     public String email;
-    public String password;
+    public String password; // Changed from passwordHash
     public String confirmPassword;
     public String teacherId;
-    public String profilePicUrl; // handle upload elsewhere, store URL here
+    public String profilePicUrl;
 }

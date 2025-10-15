@@ -23,14 +23,18 @@ public class TeacherService {
         if (!req.password.equals(req.confirmPassword)) {
             throw new IllegalArgumentException("Passwords do not match");
         }
-        if (teacherRepository.existsByEmail(req.email)) throw new IllegalArgumentException("Email already used");
-        if (teacherRepository.existsByTeacherId(req.teacherId)) throw new IllegalArgumentException("Teacher ID already used");
+        if (teacherRepository.existsByEmail(req.email)) {
+            throw new IllegalArgumentException("Email already used");
+        }
+        if (teacherRepository.existsByTeacherId(req.teacherId)) {
+            throw new IllegalArgumentException("Teacher ID already used");
+        }
 
         Teacher t = new Teacher(
                 req.name,
                 req.department,
                 req.email,
-                encoder.encode(req.password),
+                encoder.encode(req.password), // Hash the password
                 req.teacherId,
                 req.profilePicUrl
         );
@@ -42,7 +46,7 @@ public class TeacherService {
                 ? teacherRepository.findByEmail(req.emailOrTeacherId)
                 : teacherRepository.findByTeacherId(req.emailOrTeacherId);
 
-        if (teacher.isPresent() && encoder.matches(req.password, teacher.get().getPassword())) {
+        if (teacher.isPresent() && encoder.matches(req.password, teacher.get().getPasswordHash())) {
             return teacher;
         }
         return Optional.empty();
