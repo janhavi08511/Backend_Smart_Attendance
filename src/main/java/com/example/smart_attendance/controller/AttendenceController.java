@@ -122,4 +122,8 @@ public class AttendenceController {
     public ResponseEntity<?> isActive(@PathVariable String attendanceId) {
         return ResponseEntity.ok(Map.of("active", attendenceService.isBeaconActive(attendanceId)));
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 3373ec0d1e8d9aadfaab4b21072be139b3ff6bd5
